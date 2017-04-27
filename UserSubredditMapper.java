@@ -18,5 +18,4 @@ public class UserSubredditMapper extends Mapper<LongWritable, Text, Text, Text> 
 			context.write(new Text(author), new Text(subreddit));
 		}
 	}
-
 }
