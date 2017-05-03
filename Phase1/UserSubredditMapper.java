@@ -1,4 +1,5 @@
 import java.io.IOException;
+
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -10,9 +11,8 @@ public class UserSubredditMapper extends Mapper<LongWritable, Text, Text, Text> 
 			throws IOException, InterruptedException {
 		String author;
 		String subreddit;
-		String[] itr = (value.toString()).split("\\n");
-		for (int i = 0; i < itr.length; i++) {
-			JSONObject obj = new JSONObject(itr[i]);
+		if (!value.toString().trim().equals("")) {
+			JSONObject obj = new JSONObject(value.toString());
 			subreddit = obj.getString("subreddit");
 			author = obj.getString("author");
 			context.write(new Text(author), new Text(subreddit));
