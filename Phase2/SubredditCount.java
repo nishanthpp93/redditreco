@@ -22,25 +22,37 @@ public class SubredditCount extends Configured implements Tool {
     public void map(LongWritable key, Text value,
                     Mapper.Context context) throws IOException, InterruptedException {
       String[] line = (value.toString()).split(",");
-      for (int i = 1; i<line.length; i++){
-        context.write(new Text(line[i]), one);
-	for (int j = i+1; j<line.length; j++){
-	  context.write(new Text(line[i]+"|"+line[j]), one);
-	}
+      if (!(line[0].equals("[deleted]"))){
+        for (int i = 1; i<line.length; i++){
+          context.write(new Text(line[i]), one);
+          for (int j = i+1; j<line.length; j++){
+            if (line[i].toLowerCase().compareTo(line[j].toLowerCase()) < 0){
+	      context.write(new Text(line[i]+" "+line[j]), one);
+	    }
+	    else {
+              context.write(new Text(line[j]+" "+line[i]), one);
+	    }
+          }
+        }
       }
     }
   }
 
-  public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+  public static class Reduce extends Reducer<Text, IntWritable, Text, Text> {
 
     @Override
     public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
-      int sum = 0;
+      long sum = 0;
       for (IntWritable value : values) {
         sum += value.get();
       }
-
-      context.write(key, new IntWritable(sum));
+      if (key.toString().contains(" ")){
+        String[] keynew = (key.toString()).split("\\s+");
+        context.write(new Text(keynew[0]), new Text(keynew[1]+" "+String.valueOf(sum)));
+      }
+      else{
+        context.write(key, new Text(String.valueOf(sum)));
+      }
     }
   }
 
@@ -66,10 +78,9 @@ public class SubredditCount extends Configured implements Tool {
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(IntWritable.class);
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setOutputValueClass(Text.class);
 
     job.setMapperClass(Map.class);
-    job.setCombinerClass(Reduce.class);
     job.setReducerClass(Reduce.class);
 
     return job.waitForCompletion(true) ? 0 : 1;
